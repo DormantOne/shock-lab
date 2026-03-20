@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Shock Lab — Experimental Data-Driven Clinical Decision Support</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=DM+Mono:wght@300;400;500&family=Sora:wght@200;300;400;500;600;700;800&display=swap');
+:root{--bg:#05050d;--bg2:#0a0a18;--bg3:#0f0f22;--text:#c0c0d8;--text2:#6a6a88;--bright:#f0f0ff;--cyan:#00d4ff;--green:#00e87b;--magenta:#ff2d78;--amber:#ffb020;--purple:#9b6dff;--red:#ff3355}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--bg);color:var(--text);overflow:hidden;height:100vh;width:100vw}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:50px 72px;opacity:0;transform:translateX(40px);transition:opacity .5s,transform .5s;pointer-events:none;overflow-y:auto}
+.slide.active{opacity:1;transform:translateX(0);pointer-events:auto}
+.slide-num{position:absolute;top:24px;right:36px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);letter-spacing:2px}
+h1{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:60px;line-height:1.1;color:var(--bright);margin-bottom:14px}
+h1 em{font-style:italic;color:var(--cyan);font-weight:400}
+h2{font-family:'Sora',sans-serif;font-weight:700;font-size:30px;color:var(--bright);margin-bottom:18px}
+h2 .a{color:var(--cyan)}
+h3{font-family:'Sora',sans-serif;font-weight:600;font-size:18px;color:var(--bright);margin-bottom:10px}
+p{font-family:'Sora',sans-serif;font-weight:300;font-size:16px;line-height:1.8;color:var(--text);max-width:780px}
+.sub{font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);letter-spacing:3px;text-transform:uppercase;margin-bottom:20px}
+.for-line{font-family:'Cormorant Garamond',serif;font-size:21px;color:var(--text2);font-style:italic;margin-top:18px}
+.for-line strong{color:var(--amber);font-weight:600;font-style:normal}
+.screenshot{border-radius:10px;border:1px solid #ffffff12;box-shadow:0 16px 50px #00000088;max-width:100%;max-height:52vh;object-fit:contain}
+.ss-cap{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);margin-top:8px;letter-spacing:1px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:center}
+.cr{display:flex;gap:14px;margin-top:18px;flex-wrap:wrap}
+.c{background:var(--bg3);border:1px solid #ffffff08;border-radius:9px;padding:16px 20px;flex:1;min-width:190px}
+.c .ct{font-family:'Sora',sans-serif;font-weight:700;font-size:13px;margin-bottom:5px}
+.c .cb{font-family:'Sora',sans-serif;font-weight:300;font-size:12px;color:var(--text);line-height:1.6}
+.eq{background:var(--bg2);border:1px solid #ffffff08;border-radius:9px;padding:18px 24px;margin:14px 0;font-family:'DM Mono',monospace;font-size:14px;color:var(--cyan);line-height:2}
+.eq .cm{color:var(--text2);font-size:11px}
+.flow{display:flex;align-items:center;gap:10px;margin:14px 0;flex-wrap:wrap}
+.fb{background:var(--bg3);border:1px solid var(--purple);border-radius:7px;padding:8px 16px;font-family:'Sora',sans-serif;font-size:12px;font-weight:500;color:var(--bright)}
+.fa{color:var(--text2);font-size:18px}
+.sr{display:flex;gap:28px;margin:18px 0;flex-wrap:wrap}
+.sb{text-align:center}
+.sv{font-family:'Sora',sans-serif;font-weight:800;font-size:34px;color:var(--green)}
+.sl{font-family:'DM Mono',monospace;font-size:9px;color:var(--text2);letter-spacing:2px;text-transform:uppercase}
+.tp{margin-top:16px;padding:14px 18px;background:linear-gradient(135deg,#00d4ff05,#9b6dff05);border-left:3px solid var(--purple);border-radius:0 7px 7px 0}
+.tp .t{font-family:'Sora',sans-serif;font-weight:300;font-size:13px;color:var(--text);line-height:1.7;margin-bottom:7px;padding-left:14px;position:relative}
+.tp .t::before{content:'';position:absolute;left:0;top:7px;width:5px;height:5px;border-radius:50%;background:var(--purple)}
+.nav{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:100;align-items:center;background:var(--bg2);border:1px solid #ffffff12;border-radius:24px;padding:6px 14px}
+.nav button{width:32px;height:32px;border-radius:50%;background:transparent;border:1px solid var(--text2);color:var(--bright);font-size:14px;cursor:pointer;transition:all .2s;font-family:'Sora',sans-serif}
+.nav button:hover{border-color:var(--cyan);color:var(--cyan)}
+.dots{display:flex;gap:5px;margin:0 10px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--text2);transition:all .3s;cursor:pointer}
+.dot.on{background:var(--cyan);width:22px;border-radius:3px}
+#muteBtn.muted{border-color:var(--magenta);color:var(--magenta)}
+.aura{position:fixed;pointer-events:none;z-index:1;width:600px;height:600px;border-radius:50%;filter:blur(120px);opacity:0;transition:opacity 1.2s,transform 4s}
+.aura.speaking{opacity:1}
+#aura1{background:radial-gradient(circle,#00d4ff18,transparent 70%);top:-200px;left:-150px}
+#aura2{background:radial-gradient(circle,#9b6dff14,transparent 70%);bottom:-250px;right:-100px}
+#aura3{background:radial-gradient(circle,#ff2d7810,transparent 70%);top:30%;left:50%}
+.slide.spa{animation:bp 2s ease-in-out infinite}
+@keyframes bp{0%,100%{box-shadow:inset 0 0 0 0 transparent}50%{box-shadow:inset 0 0 80px -20px #00d4ff08}}
+#si{position:fixed;top:24px;left:36px;z-index:100;display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:10px;color:var(--cyan);letter-spacing:1px;opacity:0;transition:opacity .4s}
+#si.on{opacity:1}
+.wb{display:flex;gap:2px;align-items:end;height:14px}
+.wr{width:3px;background:var(--cyan);border-radius:1px;animation:wv .8s ease-in-out infinite}
+.wr:nth-child(1){height:4px;animation-delay:0s}.wr:nth-child(2){height:8px;animation-delay:.1s}.wr:nth-child(3){height:12px;animation-delay:.2s}.wr:nth-child(4){height:6px;animation-delay:.3s}.wr:nth-child(5){height:10px;animation-delay:.15s}
+@keyframes wv{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.3)}}
+.grain{position:fixed;inset:0;pointer-events:none;z-index:50;opacity:.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+#voiceMode{position:fixed;top:24px;right:120px;z-index:100;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;padding:3px 10px;border-radius:10px}
+.vm-audio{background:var(--green);color:#000}.vm-synth{background:var(--amber);color:#000}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="aura" id="aura1"></div><div class="aura" id="aura2"></div><div class="aura" id="aura3"></div>
+<div id="si"><div class="wb"><div class="wr"></div><div class="wr"></div><div class="wr"></div><div class="wr"></div><div class="wr"></div></div>NARRATING</div>
+<div id="voiceMode"></div>
+
+<!-- SLIDE 0: TITLE -->
+<div class="slide active" data-i="0"><div class="slide-num">01 / 13</div><div class="sub">Experimental Prototype — March 2026</div><h1>Data-Driven <em>Shock Lab</em></h1><p style="font-size:18px;max-width:720px">A nonlinear reservoir computing model with learned tipping points that discovers hemodynamic dynamics from patient trajectories — including hidden physiological states and critical thresholds — and lets clinicians experiment with intervention strategies on a fitted digital twin.</p><div class="for-line">Prepared for <strong>Dr. Gavin Hickey</strong> &amp; <strong>Nurse Nicole Kunz</strong></div><div style="margin-top:32px;display:flex;gap:16px"><div class="fb" style="border-color:var(--cyan)">Interpretable</div><div class="fb" style="border-color:var(--green)">Data-Fitted</div><div class="fb" style="border-color:var(--amber)">Nonlinear Tipping Points</div><div class="fb" style="border-color:var(--magenta)">LLM-Augmented</div></div></div>
+
+<!-- SLIDE 1: PROBLEM -->
+<div class="slide" data-i="1"><div class="slide-num">02 / 13</div><h2>The <span class="a">Problem</span></h2><p>Shock management requires rapid, high-stakes decisions with incomplete information.</p><div class="cr"><div class="c" style="border-color:var(--magenta)"><div class="ct" style="color:var(--magenta)">Black-Box ML</div><div class="cb">Neural nets predict but can't explain <em>why</em>. No way to inspect or challenge the reasoning.</div></div><div class="c" style="border-color:var(--amber)"><div class="ct" style="color:var(--amber)">Static Guidelines</div><div class="cb">Population-level protocols don't adapt to your patients or your institution's patterns.</div></div><div class="c" style="border-color:var(--green)"><div class="ct" style="color:var(--green)">What We Want</div><div class="cb">A model that <strong>learns from our data</strong>, <strong>shows its reasoning</strong>, captures <strong>nonlinear thresholds</strong>, and lets clinicians <strong>experiment</strong>.</div></div></div></div>
+
+<!-- SLIDE 2: ARCHITECTURE -->
+<div class="slide" data-i="2"><div class="slide-num">03 / 13</div><h2>Reservoir Computing <span class="a">Architecture</span></h2><p>Every clinical variable is a "reservoir" with spring-to-equilibrium dynamics plus nonlinear tipping forces.</p><div class="eq"><span class="cm"># Linear spring toward shifted equilibrium:</span><br>state += (effective_eq - state) × spring_rate × dt<br><br><span class="cm"># Plus nonlinear tipping forces (learned sigmoids):</span><br>tip_force = Σ<sub>k</sub> magnitude<sub>k</sub> × σ(steepness<sub>k</sub> × (state - threshold<sub>k</sub>))<br><br><span class="cm"># Combined: linear dynamics + multi-channel nonlinear edges</span></div><p style="font-size:13px;margin-top:10px">Not a neural network. Coupled differential equations where every parameter — including the tipping thresholds — has a physiological name, a direction, and a magnitude a clinician can read and challenge.</p></div>
+
+<!-- SLIDE 3: TIPPING POINTS -->
+<div class="slide" data-i="3"><div class="slide-num">04 / 13</div><h2>Learned <span class="a" style="color:var(--red)">Tipping Points</span></h2><p>Biological systems are nonlinear. The model learns WHERE thresholds are, HOW sharp, and WHAT HAPPENS when crossed.</p><div class="cr"><div class="c" style="border-color:var(--red)"><div class="ct" style="color:var(--red)">Below + Collapse</div><div class="cb">MAP drops below autoregulatory threshold → perfusion collapses nonlinearly. Not a gradual decline — a cliff.</div></div><div class="c" style="border-color:var(--amber)"><div class="ct" style="color:var(--amber)">Above + Cascade</div><div class="cb">Lactate exceeds clearance capacity → self-reinforcing spiral. Poor perfusion creates more lactate which worsens perfusion.</div></div><div class="c" style="border-color:var(--green)"><div class="ct" style="color:var(--green)">Below + Rebound</div><div class="cb">Compensatory reflexes activate below a threshold — the body fighting back. Tachycardia response, vasoconstriction.</div></div><div class="c" style="border-color:var(--cyan)"><div class="ct" style="color:var(--cyan)">Above + Ceiling</div><div class="cb">Negative feedback kicks in above a threshold — natural suppression. Baroreceptor reflex, clearance saturation.</div></div></div><p style="margin-top:14px;font-size:13px">Each reservoir has up to <strong>3 tipping channels</strong> — multi-edge thresholds. 216 total parameters: 117 linear weights, 18 equilibria/springs, and <strong>81 tipping parameters</strong> (9 reservoirs × 3 channels × 3 params each).</p></div>
+
+<!-- SLIDE 4: HIDDEN RESERVOIRS -->
+<div class="slide" data-i="4"><div class="slide-num">05 / 13</div><h2>Hidden Reservoirs: <span class="a">Discovered Physiology</span></h2><p>3 unnamed hidden reservoirs start as blank slates. After fitting, they develop identities.</p><div class="cr"><div class="c" style="border-color:var(--purple)"><div class="ct" style="color:var(--purple)">Organ Stress (h0)</div><div class="cb">Driven by fluid volume, age, and lactate. Pushes creatinine up and procalcitonin down. Captures organ injury burden.</div></div><div class="c" style="border-color:var(--cyan)"><div class="ct" style="color:var(--cyan)">Inflammatory Burden (h1)</div><div class="cb">Fed by WBC, lactate, and mechanical support. Inhibited by fluids. Pushes MAP up — the model's mediator axis.</div></div><div class="c" style="border-color:var(--green)"><div class="ct" style="color:var(--green)">Convergence Node (h2)</div><div class="cb">Self-inhibiting. Integrates lactate, creatinine, and MAP. Pushes MAP down — a destabilizing feedback loop.</div></div></div><p style="margin-top:14px;font-size:13px">These are continuous, not categorical. They discovered themselves from the data — not pre-programmed shock types.</p></div>
+
+<!-- SLIDE 5: SCREENSHOT 1 — FITTING -->
+<div class="slide" data-i="5"><div class="slide-num">06 / 13</div><div class="two-col"><div><h2>Data <span class="a">Fitting</span></h2><p style="font-size:14px">216 parameters optimized against 1000 patient trajectories at 6h, 12h, 24h. Two-phase: fast fit on subsample, refine on full data.</p><div class="sr"><div class="sb"><div class="sv">86.5%</div><div class="sl">Loss Improvement</div></div><div class="sb"><div class="sv">91s</div><div class="sl">Fit Time</div></div><div class="sb"><div class="sv">30</div><div class="sl">Connections</div></div></div><div class="sr"><div class="sb"><div class="sv" style="color:var(--amber)">4.95</div><div class="sl">MAP RMSE (mmHg)</div></div><div class="sb"><div class="sv" style="color:var(--amber)">1.04</div><div class="sl">Lactate RMSE</div></div><div class="sb"><div class="sv" style="color:var(--red)">2</div><div class="sl">Tipping Points</div></div></div></div><div><img class="screenshot" src="image1.png" alt="Fitting"><div class="ss-cap">Loss convergence, prediction accuracy, network with tipping points</div></div></div></div>
+
+<!-- SLIDE 6: SCREENSHOT 2 — NETWORK -->
+<div class="slide" data-i="6"><div class="slide-num">07 / 13</div><div class="two-col"><div><img class="screenshot" src="image2.png" alt="Network"><div class="ss-cap">Hidden reservoirs, connections, LLM parsing with extracted/inferred</div></div><div><h2>Learned <span class="a">Network</span></h2><p style="font-size:13px">30 of 117 connections survived pruning. The model discovered three distinct hidden states and two active tipping points.</p><div class="cr" style="flex-direction:column;gap:6px"><div class="c" style="padding:8px 14px"><div class="ct" style="color:var(--cyan);font-size:11px">mech → map (fill, 0.207)</div><div class="cb" style="font-size:11px">Strongest. Mechanical support directly raises MAP equilibrium.</div></div><div class="c" style="padding:8px 14px"><div class="ct" style="color:var(--magenta);font-size:11px">fluid_vol → h1 (leak, -0.206)</div><div class="cb" style="font-size:11px">Fluids suppress the Inflammatory Burden hidden reservoir.</div></div><div class="c" style="padding:8px 14px"><div class="ct" style="color:var(--green);font-size:11px">h1 → map (fill, 0.180)</div><div class="cb" style="font-size:11px">Inflammatory Burden drives MAP — the hidden mediator pathway.</div></div></div></div></div></div>
+
+<!-- SLIDE 7: HOW FITTING WORKS -->
+<div class="slide" data-i="7"><div class="slide-num">08 / 13</div><h2>How Fitting <span class="a">Works</span></h2><div class="flow"><div class="fb">Load Patients</div><span class="fa">→</span><div class="fb">Set State (t=0)</div><span class="fa">→</span><div class="fb">Simulate 24h</div><span class="fa">→</span><div class="fb">Compare</div><span class="fa">→</span><div class="fb">Loss</div><span class="fa">→</span><div class="fb">Update</div></div><div class="cr"><div class="c" style="border-color:var(--cyan)"><div class="ct" style="color:var(--cyan)">216 Parameters</div><div class="cb"><strong>117 connection weights</strong> — linear spring dynamics.<br><strong>18 eq + spring rates</strong> — resting states.<br><strong>81 tipping params</strong> — 3 thresholds per reservoir, each with location, steepness, magnitude.</div></div><div class="c" style="border-color:var(--green)"><div class="ct" style="color:var(--green)">Loss + Regularization</div><div class="cb"><strong>MSE</strong> on MAP, HR, lactate at 6/12/24h.<br><strong>L2 on weights</strong> kills weak connections.<br><strong>L1 on tipping magnitudes</strong> — unused tipping points get driven to zero. Only real thresholds survive.</div></div><div class="c" style="border-color:var(--purple)"><div class="ct" style="color:var(--purple)">Why Not a Neural Net?</div><div class="cb">MLP weight[47][23] = 0.32 means nothing.<br>Here: weight[mech→MAP] = 0.207 and a tipping point at MAP 65 mmHg with collapse dynamics <em>each mean something specific</em>.</div></div></div></div>
+
+<!-- SLIDE 8: SCREENSHOT 3 — ORACLE -->
+<div class="slide" data-i="8"><div class="slide-num">09 / 13</div><div class="two-col"><div><h2>The <span class="a">Oracle</span></h2><p style="font-size:14px">Plain language in → structured profile out → review → experiment. Powered by local LLM (Ollama gpt-oss:20b).</p><p style="font-size:13px;margin-top:10px"><strong style="color:var(--cyan)">Parse:</strong> LLM extracted MAP 50, HR 130, lactate 7, creatinine 1.5 from the text. Inferred WBC 12, procalcitonin 10, age 60 — shown in amber.</p><p style="font-size:13px;margin-top:6px"><strong style="color:var(--green)">Experiment:</strong> 4 strategies simulated 24h through the nonlinear model. "Fluids First" scored highest at 16.0. MAP recovered to 53.3, lactate cleared 6%.</p><div class="tp"><div class="t">LLM runs <strong>locally through Ollama</strong> — no data leaves the building.</div><div class="t">The model's tipping points shape the trajectories — they're not just linear extrapolations.</div></div></div><div><img class="screenshot" src="image3.png" alt="Oracle"><div class="ss-cap">Ranked strategies with nonlinear trajectory predictions</div></div></div></div>
+
+<!-- SLIDE 9: SCORING -->
+<div class="slide" data-i="9"><div class="slide-num">10 / 13</div><h2>Reading <span class="a">Results</span></h2><div class="cr"><div class="c" style="border-color:var(--green)"><div class="ct" style="color:var(--green)">MAP Recovery (40 pts)</div><div class="cb">Above 65? How quickly? Tipping points mean crossing 65 isn't linear — it's a phase transition the model captures.</div></div><div class="c" style="border-color:var(--cyan)"><div class="ct" style="color:var(--cyan)">Lactate Clearance (25 pts)</div><div class="cb">Percentage cleared by 24h. If lactate is above a learned spiral threshold, the model predicts it accelerates — not just drifts.</div></div><div class="c" style="border-color:var(--purple)"><div class="ct" style="color:var(--purple)">HR Normalization (15 pts)</div><div class="cb">Trending toward 60-100. Compensatory tachycardia has its own threshold dynamics.</div></div><div class="c" style="border-color:var(--magenta)"><div class="ct" style="color:var(--magenta)">Renal Preservation (penalty)</div><div class="cb">Creatinine rise penalized. The model may learn a renal injury cascade threshold.</div></div></div></div>
+
+<!-- SLIDE 10: HONESTY -->
+<div class="slide" data-i="10"><div class="slide-num">11 / 13</div><h2>What's <span class="a" style="color:var(--green)">Real</span> vs <span class="a" style="color:var(--magenta)">Not Yet</span></h2><div class="two-col" style="align-items:start"><div><h3 style="color:var(--green)">Proven</h3><div class="tp" style="border-color:var(--green)"><div class="t">Nonlinear fitting converges with 216 parameters</div><div class="t">30 connections + 2 tipping points discovered</div><div class="t">3 hidden reservoirs with clinically suggestive names</div><div class="t">Fully transparent, editable JSON</div><div class="t">Local LLM parses free text with extracted/inferred tracking</div><div class="t">Tipping point architecture is extensible to real nonlinear dynamics</div></div></div><div><h3 style="color:var(--magenta)">Not yet</h3><div class="tp" style="border-color:var(--magenta)"><div class="t"><strong>Synthetic data</strong> — planted signal is mostly linear, so tipping points are weak</div><div class="t"><strong>Real data will be the true test</strong> — autoregulatory failure, lactate spirals should produce sharp thresholds</div><div class="t"><strong>Correlation ≠ causation</strong> — confounding by indication</div><div class="t"><strong>No prospective validation</strong></div><div class="t"><strong>Regulatory pathway</strong> TBD</div></div></div></div></div>
+
+<!-- SLIDE 11: NEXT STEPS -->
+<div class="slide" data-i="11"><div class="slide-num">12 / 13</div><h2>Next <span class="a">Steps</span></h2><div class="cr" style="flex-direction:column;gap:10px"><div class="c" style="border-color:var(--cyan);display:flex;gap:14px;align-items:center"><div style="font-size:28px;font-weight:800;color:var(--cyan);font-family:Sora;width:36px;text-align:center;flex-shrink:0">1</div><div><div class="ct" style="color:var(--cyan)">Data Access</div><div class="cb">De-identified shock trajectories from EHR. Vitals, labs, vasopressors, fluids, mechanical support, 28-day outcomes.</div></div></div><div class="c" style="border-color:var(--green);display:flex;gap:14px;align-items:center"><div style="font-size:28px;font-weight:800;color:var(--green);font-family:Sora;width:36px;text-align:center;flex-shrink:0">2</div><div><div class="ct" style="color:var(--green)">Fit Real Data</div><div class="cb">Same pipeline. Do tipping points sharpen? Do hidden reservoirs find real physiology? This is the make-or-break moment.</div></div></div><div class="c" style="border-color:var(--amber);display:flex;gap:14px;align-items:center"><div style="font-size:28px;font-weight:800;color:var(--amber);font-family:Sora;width:36px;text-align:center;flex-shrink:0">3</div><div><div class="ct" style="color:var(--amber)">Stress Test the Model</div><div class="cb">Adversarial scenarios. Edge cases. Cross-validation. Does it overfit? Do tipping points generalize? We test the hell out of it.</div></div></div><div class="c" style="border-color:var(--purple);display:flex;gap:14px;align-items:center"><div style="font-size:28px;font-weight:800;color:var(--purple);font-family:Sora;width:36px;text-align:center;flex-shrink:0">4</div><div><div class="ct" style="color:var(--purple)">Clinical Review + Team</div><div class="cb">Clinicians inspect every connection and tipping point. Name hidden reservoirs. Critical care, biostatistics, data engineering, regulatory.</div></div></div></div></div>
+
+<!-- SLIDE 12: CLOSE -->
+<div class="slide" data-i="12"><div class="slide-num">13 / 13</div><div class="sub">experimental — march 2026</div><h1 style="font-size:48px">The model is <em>interpretable</em>.<br>The parameters are <em>learned</em>.<br>The tipping points are <em>discovered</em>.<br>The clinician is <em>in control</em>.</h1><p style="margin-top:24px;font-size:17px">A prototype on synthetic data. 216 parameters. 3 hidden reservoirs. Multi-channel tipping points. The architecture is real. Does it hold against actual patient outcomes?</p><div class="for-line">Let's find out together.</div></div>
+
+<nav class="nav">
+  <button onclick="go(-1)">←</button>
+  <div class="dots" id="dots"></div>
+  <button onclick="go(1)">→</button>
+  <button id="muteBtn" onclick="toggleMute()" title="Mute (m)">🔊</button>
+</nav>
+
+<script>
+var cur=0,N=13,muted=false,speaking=false,useAudio=false;
+var slides=document.querySelectorAll('.slide');
+var dotsEl=document.getElementById('dots');
+var audioEl=new Audio();
+var audioAvailable={};
+
+for(var i=0;i<N;i++){var d=document.createElement('div');d.className='dot'+(i===0?' on':'');d.setAttribute('data-i',i);d.onclick=function(){goTo(+this.getAttribute('data-i'))};dotsEl.appendChild(d)}
+
+function probeAudio(){var n=0;for(var i=0;i<N;i++){(function(idx){var a=new Audio();a.addEventListener('canplaythrough',function(){audioAvailable[idx]=true;n++;ck(n)},{once:true});a.addEventListener('error',function(){audioAvailable[idx]=false;n++;ck(n)},{once:true});a.src='slide_'+String(idx).padStart(2,'0')+'.m4a'})(i)}}
+function ck(n){if(n<N)return;var c=Object.values(audioAvailable).filter(Boolean).length;useAudio=c>0;var vm=document.getElementById('voiceMode');if(useAudio){vm.textContent='AUDIO ('+c+'/'+N+')';vm.className='vm-audio'}else{vm.textContent='SPEECH SYNTH';vm.className='vm-synth'}}
+probeAudio();
+
+function goTo(n){if(n<0||n>=N||n===cur)return;slides[cur].classList.remove('active','spa');slides[n].classList.add('active');document.querySelectorAll('.dot').forEach(function(d,i){d.className='dot'+(i===n?' on':'')});cur=n;speakSlide(n)}
+function go(dir){goTo(cur+dir)}
+document.addEventListener('keydown',function(e){if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();go(1)}if(e.key==='ArrowLeft')go(-1);if(e.key==='m')toggleMute()});
+function toggleMute(){muted=!muted;var b=document.getElementById('muteBtn');b.textContent=muted?'\uD83D\uDD07':'\uD83D\uDD0A';b.className=muted?'muted':'';stopAll();setVis(false)}
+function stopAll(){audioEl.pause();audioEl.currentTime=0;window.speechSynthesis.cancel()}
+
+var narration=[
+"Welcome to Shock Lab — a nonlinear, data-driven clinical decision support prototype. This version uses reservoir computing with learned tipping points — multi-channel thresholds that capture the cliff edges and cascades that define real shock physiology. It discovers hidden physiological states, fits against patient trajectories, and lets clinicians experiment on a digital twin. Prepared for Doctor Gavin Hickey and Nurse Nicole Kunz.",
+
+"The core problem. Shock management is high-stakes and time-critical. Black-box models predict but can't explain. Published guidelines are population averages. What we need is a model that learns from our own data, captures nonlinear thresholds — because biology isn't linear — shows its reasoning transparently, and lets clinicians experiment before committing.",
+
+"The architecture combines linear spring dynamics with nonlinear tipping forces. Each clinical variable springs toward a shifted equilibrium — that's the linear part. But on top of that, learned sigmoid functions fire when a variable crosses a threshold. These tipping forces can destabilize, cascade, compensate, or suppress. The model learns where those thresholds are, how sharp they are, and what happens when they're crossed. Every parameter has a physiological name.",
+
+"This is crucial. Biological systems have tipping points everywhere. MAP drops below autoregulatory threshold — it's not a gradual decline, it's a cliff. Lactate exceeds clearance capacity — it spirals. Renal function holds steady until it doesn't, then cascades. The model has three tipping channels per reservoir, each learning threshold, steepness, and magnitude independently. Four possible behaviors: collapse, cascade, rebound, and ceiling. Multiple channels per variable create multi-edge dynamics — like a staircase of thresholds.",
+
+"The model has three hidden reservoirs that start unnamed. After fitting against a thousand patients, they developed distinct identities. H-zero became Organ Stress — driven by fluid volume, age, and lactate, pushing creatinine up. H-one became Inflammatory Burden — fed by white cell count and lactate, suppressed by fluids, driving MAP through a hidden mediator pathway. H-two became a Convergence Node — self-inhibiting, integrating lactate, creatinine, and MAP into a destabilizing feedback loop.",
+
+"Here's the fitting dashboard. Two hundred sixteen parameters optimized in about ninety seconds. Eighty-six percent loss reduction. Thirty connections survived pruning out of a hundred seventeen possible. Two tipping points emerged as active. MAP prediction accuracy within five millimeters of mercury. Lactate within one millimol per liter. The tipping points are weak with synthetic data — that's expected, because the planted dynamics are mostly linear. With real clinical data, we expect them to sharpen dramatically.",
+
+"This is the learned network. Mechanical support to MAP is the strongest connection — direct hemodynamic support raises blood pressure. Fluids suppress the Inflammatory Burden hidden reservoir. The hidden mediator pathway from H-one to MAP shows an indirect route the model discovered on its own. The connection table shows all thirty surviving relationships. Below that, the LLM parsing interface — it correctly extracted MAP fifty, heart rate one-thirty, lactate seven, creatinine one-point-five from natural language, and flagged W-B-C, procalcitonin, and age as inferred values in amber.",
+
+"The fitting process runs in two phases. Phase one: fast optimization on a two-hundred-patient subsample to quickly find the basin. Phase two: refinement on all one thousand patients. Two hundred sixteen parameters total — a hundred seventeen weights, eighteen equilibria and spring rates, and eighty-one tipping parameters. L-2 regularization on weights drives weak connections to zero. L-1 regularization on tipping magnitudes ensures only real thresholds survive — unused tipping points get pruned to nothing.",
+
+"The Oracle is the clinical interface. A septic shock patient with MAP fifty, lactate seven, heart rate one-thirty. The local LLM parsed it, extracted four values, inferred three in amber. Four intervention strategies ran through the nonlinear model. Fluids First scored highest at sixteen. MAP recovered to fifty-three — still below target, suggesting escalation needed. Lactate cleared six percent. The tipping points in the model shape these trajectories — they're not simple linear extrapolations.",
+
+"Composite scores break into four components. MAP recovery is worth forty points — and crossing the sixty-five threshold matters nonlinearly because the model may have learned an autoregulatory tipping point there. Lactate clearance is twenty-five points — above a learned spiral threshold, the prediction worsens faster. Heart rate normalization adds fifteen. Renal preservation penalizes creatinine rise. All weights are configurable.",
+
+"Honesty time. The nonlinear fitting works — two hundred sixteen parameters converge, tipping points emerge, hidden reservoirs discover structure. But the tipping points are weak because synthetic data has mostly linear dynamics planted. Real data is the true test — autoregulatory failure and lactate spirals should produce sharp, clinically meaningful thresholds. Confounding by indication remains the big unsolved challenge. No prospective validation exists yet.",
+
+"Next steps. First, data access — shock trajectories from the EHR. Second, fit against real data and see if tipping points sharpen at clinically meaningful values. Third — and this is critical — stress test the model relentlessly. Adversarial scenarios, cross-validation, holdout testing, edge cases. We test the hell out of it. Fourth, clinical review and team assembly. Every connection and tipping point gets inspected by physicians and nurses.",
+
+"To close. The model is interpretable. The parameters are learned. The tipping points are discovered from data. And the clinician is in control — they can inspect, edit, challenge, and override every single parameter, threshold, and connection. This is a prototype on synthetic data with two hundred sixteen parameters, three hidden reservoirs, and multi-channel tipping dynamics. The architecture is real. The question is whether it survives the beautiful, messy complexity of actual patient outcomes. Let's find out together."
+];
+
+function speakSlide(idx){stopAll();setVis(false);if(muted)return;setTimeout(function(){if(cur!==idx)return;if(useAudio&&audioAvailable[idx]){audioEl.src='slide_'+String(idx).padStart(2,'0')+'.m4a';audioEl.onplay=function(){setVis(true)};audioEl.onended=function(){setVis(false)};audioEl.onerror=function(){fb(idx)};audioEl.play().catch(function(){fb(idx)})}else{fb(idx)}},500)}
+
+function fb(idx){if(!narration[idx]||muted)return;var u=new SpeechSynthesisUtterance(narration[idx]);u.rate=0.92;u.pitch=1.0;var v=window.speechSynthesis.getVoices();var pref=v.find(function(x){return/premium|enhanced/i.test(x.name)&&/en/i.test(x.lang)})||v.find(function(x){return x.name.indexOf('Samantha')>=0})||v.find(function(x){return x.lang.indexOf('en')===0&&!x.localService})||v.find(function(x){return x.lang.indexOf('en')===0});if(pref)u.voice=pref;u.onstart=function(){setVis(true)};u.onend=function(){setVis(false)};u.onerror=function(){setVis(false)};window.speechSynthesis.speak(u)}
+
+var dI;function setVis(on){speaking=on;document.getElementById('si').className=on?'on':'';['aura1','aura2','aura3'].forEach(function(id){document.getElementById(id).className='aura'+(on?' speaking':'')});if(on){slides[cur].classList.add('spa');clearInterval(dI);dI=setInterval(function(){if(!speaking){clearInterval(dI);return}['aura1','aura2','aura3'].forEach(function(id){document.getElementById(id).style.transform='translate('+(Math.random()*80-40)+'px,'+(Math.random()*60-30)+'px)'})},3000)}else{slides[cur].classList.remove('spa')}}
+
+window.speechSynthesis.onvoiceschanged=function(){};
+setTimeout(function(){speakSlide(0)},600);
+</script>
+</body>
+</html>

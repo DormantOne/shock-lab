@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHOCK LAB v2 — Reservoir Net Arena</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+  :root {
+    --bg: #060610;
+    --bg2: #0b0b1a;
+    --bg3: #101025;
+    --bg4: #16162e;
+    --border: #1a1a38;
+    --border2: #252550;
+    --text: #b8b8d0;
+    --text2: #6e6e90;
+    --bright: #eeeef8;
+    --cyan: #00d4ff;
+    --green: #00e87b;
+    --magenta: #ff2d78;
+    --amber: #ffb020;
+    --purple: #9b6dff;
+    --orange: #ff7043;
+    --red: #ff3355;
+    --blue: #4488ff;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { background:var(--bg); color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:12px; line-height:1.5; }
+  ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+  .header {
+    padding:16px 28px;
+    display:flex; align-items:center; gap:14px;
+    border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,#0a0a1a,var(--bg));
+  }
+  .logo { font-family:'Outfit',sans-serif; font-size:24px; font-weight:800; background:linear-gradient(135deg,var(--cyan),var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .tag { font-size:9px; padding:3px 10px; border-radius:12px; letter-spacing:1.5px; text-transform:uppercase; font-weight:600; }
+  .tag-idle { background:#ffffff10; color:var(--text2); }
+  .tag-running { background:var(--amber); color:#000; animation:pulse 1s infinite; }
+  .tag-done { background:var(--green); color:#000; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+  .container { max-width:1400px; margin:0 auto; padding:20px 28px; }
+
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+
+  .card {
+    background:var(--bg2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    margin-bottom:16px;
+  }
+  .card-head {
+    padding:12px 18px;
+    display:flex; align-items:center; gap:10px;
+    border-bottom:1px solid var(--border);
+    background:var(--bg3);
+  }
+  .card-head h2 { font-family:'Outfit',sans-serif; font-size:15px; font-weight:700; color:var(--bright); }
+  .card-head .icon { font-size:16px; }
+  .card-body { padding:18px; }
+
+  .btn {
+    padding:10px 22px; border:none; border-radius:7px;
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:12px;
+    cursor:pointer; transition:all .15s; text-transform:uppercase; letter-spacing:1px;
+  }
+  .btn-fit { background:linear-gradient(135deg,var(--purple),#6a3de8); color:#fff; }
+  .btn-fit:hover { filter:brightness(1.2); transform:translateY(-1px); }
+  .btn-fit:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+  .btn-ask { background:linear-gradient(135deg,var(--cyan),#0088cc); color:#000; }
+  .btn-ask:hover { filter:brightness(1.2); }
+  .btn-ask:disabled { opacity:.4; cursor:not-allowed; }
+
+  /* --- Progress --- */
+  .progress-bar { height:6px; background:var(--bg); border-radius:3px; overflow:hidden; margin:10px 0; }
+  .progress-fill { height:100%; border-radius:3px; transition:width .3s; background:linear-gradient(90deg,var(--purple),var(--cyan)); }
+
+  /* --- Loss chart --- */
+  .loss-canvas { width:100%; height:120px; background:var(--bg); border-radius:6px; }
+
+  /* --- Stats grid --- */
+  .stat-grid { display:flex; gap:16px; flex-wrap:wrap; }
+  .stat { text-align:center; min-width:80px; }
+  .stat .val { font-family:'Outfit',sans-serif; font-size:22px; font-weight:800; color:var(--bright); }
+  .stat .lbl { font-size:9px; color:var(--text2); text-transform:uppercase; letter-spacing:1px; }
+
+  /* --- Network canvas --- */
+  #netCanvas { width:100%; height:420px; background:var(--bg); border-radius:8px; cursor:crosshair; }
+  .net-tip {
+    display:none; position:fixed; background:var(--bg3); border:1px solid var(--purple);
+    border-radius:8px; padding:10px 14px; pointer-events:none; z-index:100; max-width:300px; font-size:10px;
+  }
+
+  /* --- Connection table --- */
+  .conn-table { width:100%; border-collapse:collapse; font-size:11px; }
+  .conn-table th { padding:8px 10px; text-align:left; font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--text2); border-bottom:1px solid var(--border); }
+  .conn-table td { padding:6px 10px; border-bottom:1px solid #ffffff06; }
+  .conn-table tr:hover td { background:var(--bg4); }
+  .w-bar { display:inline-block; height:5px; border-radius:2px; vertical-align:middle; margin-left:6px; }
+
+  /* --- Hidden reservoir cards --- */
+  .hidden-card {
+    background:var(--bg3); border:1px solid var(--border2); border-radius:8px; padding:14px;
+  }
+  .hidden-card .h-name { font-family:'Outfit',sans-serif; font-size:16px; font-weight:700; margin-bottom:4px; }
+  .hidden-card .h-sub { font-size:10px; color:var(--text2); margin-bottom:8px; }
+  .h-conn { font-size:10px; padding:2px 0; }
+
+  /* --- Oracle --- */
+  .q-input {
+    width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px;
+    color:var(--bright); font-family:'IBM Plex Mono',monospace; font-size:13px;
+    padding:12px 16px; outline:none; transition:border .2s;
+  }
+  .q-input:focus { border-color:var(--cyan); }
+  .q-input::placeholder { color:var(--text2); }
+
+  .example-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .chip {
+    padding:5px 12px; border-radius:16px; background:var(--bg3); border:1px solid var(--border);
+    font-size:10px; color:var(--text2); cursor:pointer; transition:all .15s;
+  }
+  .chip:hover { border-color:var(--cyan); color:var(--cyan); }
+
+  /* --- Scenario cards --- */
+  .scenario-card {
+    background:var(--bg3); border:1px solid var(--border); border-radius:10px;
+    padding:16px; position:relative; transition:all .2s;
+  }
+  .scenario-card.best { border-color:var(--green); box-shadow:0 0 20px #00e87b15; }
+  .scenario-card .sc-rank {
+    position:absolute; top:10px; right:10px; width:28px; height:28px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800;
+  }
+  .rank-1 { background:linear-gradient(135deg,#ffd700,#ff8c00); color:#000; }
+  .rank-2 { background:#c0c0c0; color:#000; }
+  .rank-3 { background:#cd7f32; color:#fff; }
+  .rank-4 { background:var(--bg4); color:var(--text2); }
+
+  .sc-name { font-family:'Outfit',sans-serif; font-size:15px; font-weight:700; color:var(--bright); }
+  .sc-desc { font-size:10px; color:var(--text2); margin:4px 0 10px; }
+  .sc-score { font-family:'Outfit',sans-serif; font-size:28px; font-weight:800; }
+  .sc-score-lbl { font-size:9px; color:var(--text2); text-transform:uppercase; letter-spacing:1px; }
+
+  .pred-row { display:flex; gap:12px; margin-top:10px; flex-wrap:wrap; }
+  .pred-item { text-align:center; }
+  .pred-val { font-size:16px; font-weight:700; font-family:'Outfit',sans-serif; }
+  .pred-lbl { font-size:8px; color:var(--text2); text-transform:uppercase; }
+
+  /* --- Trajectory chart --- */
+  .traj-canvas { width:100%; height:180px; background:var(--bg); border-radius:6px; }
+
+  /* --- Recommendation --- */
+  .rec-box {
+    background:linear-gradient(135deg,#00e87b08,#00d4ff08);
+    border:1px solid var(--green); border-radius:10px; padding:18px 22px; margin-top:16px;
+  }
+  .rec-box h3 { font-family:'Outfit',sans-serif; color:var(--green); font-size:16px; margin-bottom:8px; }
+  .rec-box pre { white-space:pre-wrap; font-size:11px; color:var(--text); line-height:1.7; }
+
+  .hidden { display:none; }
+  .fade-in { animation:fadeIn .4s ease forwards; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  /* Profile edit inputs */
+  #profileGrid input[type=number]:focus { border-color:var(--cyan) !important; box-shadow:0 0 8px var(--cyan)22; }
+  #profileGrid input[type=number]::-webkit-inner-spin-button { opacity:0.3; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">SHOCK LAB v2</div>
+  <span style="font-size:10px;color:var(--text2)">Reservoir Net Arena</span>
+  <span class="tag tag-idle" id="statusTag">IDLE</span>
+  <span style="margin-left:auto;font-size:9px;color:var(--text2)" id="paramInfo">{{ n_params }} parameters &middot; {{ n_source }}&times;{{ n_target }} potential connections</span>
+</header>
+
+<div class="container">
+
+  <!-- SECTION 1: FIT MODEL -->
+  <div class="card">
+    <div class="card-head">
+      <span class="icon">&#x2B21;</span>
+      <h2>Fit Reservoir Model to Patient Data</h2>
+      <span style="margin-left:auto;font-size:10px;color:var(--text2)">1000 patients &middot; 3 time-series &middot; 24h trajectories</span>
+    </div>
+    <div class="card-body">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+        <button class="btn btn-fit" id="fitBtn" onclick="startFit()">Fit Model</button>
+        <div style="flex:1">
+          <div style="font-size:10px;color:var(--text2)" id="fitMsg">Fully connected reservoir network with 3 hidden reservoirs. Click to optimize against patient trajectories.</div>
+          <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <div class="hidden" id="fitStats">
+        <div class="stat-grid" id="statGrid"></div>
+        <div style="margin-top:12px">
+          <canvas class="loss-canvas" id="lossCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Variable errors -->
+      <div class="hidden" id="varErrors" style="margin-top:14px"></div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: NETWORK + HIDDEN ANALYSIS (side by side) -->
+  <div class="grid-2 hidden" id="networkSection">
+    <div class="card">
+      <div class="card-head">
+        <span class="icon">&#x26A1;</span>
+        <h2>Learned Network</h2>
+        <span style="margin-left:auto;font-size:10px;color:var(--text2)" id="connCount"></span>
+      </div>
+      <div class="card-body">
+        <div style="margin-bottom:8px"><button id="toggleNetBtn" onclick="toggleFullNetwork()" style="padding:4px 12px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--cyan);font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;cursor:pointer">Show all connections</button></div>
+        <canvas id="netCanvas"></canvas>
+        <div class="net-tip" id="netTip"></div>
+        <div style="margin-top:10px;max-height:220px;overflow-y:auto">
+          <table class="conn-table" id="connTable">
+            <thead><tr><th>From</th><th>To</th><th>Type</th><th>Weight</th></tr></thead>
+            <tbody id="connBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="icon">&#x1F9E0;</span>
+        <h2>Hidden Reservoirs — What They Learned</h2>
+      </div>
+      <div class="card-body" id="hiddenCards"></div>
+    </div>
+  </div>
+
+  <!-- TIPPING POINTS -->
+  <div class="card hidden" id="tippingSection">
+    <div class="card-head">
+      <span class="icon">&#x26A0;</span>
+      <h2>Discovered Tipping Points</h2>
+      <span style="margin-left:auto;font-size:10px;color:var(--text2)" id="tipCount"></span>
+    </div>
+    <div class="card-body" id="tippingCards"></div>
+  </div>
+
+  <!-- SECTION 2B: TIPPING POINTS -->
+  <div class="card hidden" id="tippingSection">
+    <div class="card-head">
+      <span class="icon">&#x26A0;</span>
+      <h2>Discovered Tipping Points</h2>
+      <span style="margin-left:auto;font-size:10px;color:var(--text2)" id="tipCount"></span>
+    </div>
+    <div class="card-body">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:14px">Multi-channel nonlinear thresholds learned from data. Each shows WHERE the edge is, HOW sharp, and WHAT happens when crossed.</p>
+      <div id="tippingGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px"></div>
+      <div style="margin-top:14px;padding:12px;background:var(--bg3);border-radius:8px;font-size:11px;color:var(--text2)">
+        <strong style="color:var(--amber)">Note:</strong> With synthetic data, tipping points are weak ("soft") because the planted dynamics are mostly linear. With real patient data containing autoregulatory failure, lactate spirals, and renal cascades, expect sharper, stronger thresholds at clinically meaningful values.
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: ORACLE -->
+  <div class="card hidden" id="oracleSection">
+    <div class="card-head">
+      <span class="icon">&#x1F52E;</span>
+      <h2>The Oracle — Experiment on Fitted Model</h2>
+      <span class="tag tag-idle" id="llmTag" style="margin-left:auto">OFFLINE</span>
+    </div>
+    <div class="card-body">
+      <div style="display:flex;gap:10px">
+        <input type="text" class="q-input" id="questionInput" placeholder="Describe your patient in plain language... e.g. 'elderly septic patient crashing, pressure in the 50s, very tachycardic'">
+        <button class="btn btn-ask" id="askBtn" onclick="parseQuestion()">Parse</button>
+      </div>
+      <div class="example-chips" id="exampleChips"></div>
+
+      <!-- STEP A: Confirmation panel -->
+      <div class="hidden" id="confirmPanel" style="margin-top:16px">
+        <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:16px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <span style="font-size:14px">&#x1F9E0;</span>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--bright)">Parsed Patient Profile</div>
+              <div style="font-size:10px;color:var(--text2)" id="parseSource"></div>
+            </div>
+          </div>
+          <div style="font-size:9px;color:var(--text2);margin-bottom:8px;display:flex;gap:16px">
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cyan);margin-right:4px"></span> Extracted from your text</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--amber);margin-right:4px"></span> Inferred (made up — edit if wrong)</span>
+          </div>
+
+          <!-- Shock type -->
+          <div style="margin-bottom:12px">
+            <span style="font-size:10px;font-weight:700;letter-spacing:1px" id="shockTypeParsed"></span>
+          </div>
+
+          <!-- Editable value grid -->
+          <div style="display:flex;flex-wrap:wrap;gap:8px" id="profileGrid"></div>
+
+          <!-- Reasoning -->
+          <div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:6px;font-size:10px;color:var(--text2);font-style:italic" id="parseReasoning"></div>
+
+          <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+            <button class="btn btn-ask" id="confirmBtn" onclick="runConfirmed()" style="background:linear-gradient(135deg,var(--green),#00aa55);color:#000">Run Experiment</button>
+            <span style="font-size:10px;color:var(--text2)">Edit any values above before running</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP B: Results -->
+      <div class="hidden" id="oracleResults" style="margin-top:20px">
+        <div style="font-size:10px;color:var(--text2);margin-bottom:6px">
+          Detected: <b id="shockTypeLabel" style="color:var(--amber)"></b> &middot;
+          Profile: <span id="profileLabel"></span>
+        </div>
+
+        <div class="grid-2" id="scenarioGrid" style="margin-top:12px"></div>
+
+        <!-- Trajectory comparison chart -->
+        <div style="margin-top:16px">
+          <div style="font-size:10px;color:var(--text2);font-weight:700;letter-spacing:1px;margin-bottom:6px">PREDICTED TRAJECTORIES — ALL SCENARIOS</div>
+          <div class="grid-3">
+            <div><div style="font-size:9px;color:var(--text2);text-align:center;margin-bottom:2px">MAP (mmHg)</div><canvas class="traj-canvas" id="trajMap"></canvas></div>
+            <div><div style="font-size:9px;color:var(--text2);text-align:center;margin-bottom:2px">LACTATE (mmol/L)</div><canvas class="traj-canvas" id="trajLac"></canvas></div>
+            <div><div style="font-size:9px;color:var(--text2);text-align:center;margin-bottom:2px">HR (bpm)</div><canvas class="traj-canvas" id="trajHr"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Recommendation -->
+        <div class="rec-box hidden" id="recBox">
+          <h3>&#x1F3C6; Recommendation</h3>
+          <pre id="recText"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// --- State ---
+var fitResult = null;
+var pollTimer = null;
+
+// --- Utility ---
+function $(id){ return document.getElementById(id); }
+function show(id){ $(id).classList.remove('hidden'); }
+function hide(id){ $(id).classList.add('hidden'); }
+
+// --- Fitting ---
+function startFit(){
+  $('fitBtn').disabled = true;
+  $('fitMsg').textContent = 'Optimizing reservoir parameters...';
+  $('statusTag').className = 'tag tag-running';
+  $('statusTag').textContent = 'FITTING';
+  show('fitStats');
+
+  fetch('/api/fit', {method:'POST'}).then(r=>r.json()).then(d=>{
+    if(d.error){ alert(d.error); $('fitBtn').disabled=false; return; }
+    pollTimer = setInterval(pollFit, 400);
+  });
+}
+
+function pollFit(){
+  fetch('/api/fit/status').then(r=>r.json()).then(d=>{
+    $('progressFill').style.width = d.progress+'%';
+    var msg = d.phase || 'working...';
+    if(d.n_evals > 0) msg += ' | evals: '+d.n_evals;
+    if(d.best_loss) msg += ' | best loss: '+d.best_loss;
+    if(d.elapsed > 0) msg += ' | '+d.elapsed+'s';
+    $('fitMsg').textContent = msg;
+
+    if(d.loss_history.length > 1) drawLossChart(d.loss_history);
+
+    if(d.status === 'done'){
+      clearInterval(pollTimer);
+      $('statusTag').className = 'tag tag-done';
+      $('statusTag').textContent = 'FITTED';
+      $('fitBtn').disabled = false;
+      $('progressFill').style.width = '100%';
+      loadResults();
+    } else if(d.status === 'error'){
+      clearInterval(pollTimer);
+      $('statusTag').className = 'tag tag-idle';
+      $('statusTag').textContent = 'ERROR';
+      $('fitBtn').disabled = false;
+      $('fitMsg').textContent = 'Error: ' + (d.phase || 'unknown');
+    }
+  });
+}
+
+function loadResults(){
+  fetch('/api/fit/result').then(r=>r.json()).then(d=>{
+    fitResult = d;
+    renderFitStats(d);
+    show('networkSection');
+    show('tippingSection');
+    show('oracleSection');
+    $('networkSection').classList.add('fade-in');
+    $('oracleSection').classList.add('fade-in');
+    $('tippingSection').classList.add('fade-in');
+    requestAnimationFrame(function(){
+      renderNetwork(d);
+      renderHidden(d.hidden_analysis);
+      renderTipping(d.tipping_points || []);
+      loadExamples();
+    });
+  });
+}
+
+function renderFitStats(d){
+  var h='';
+  h+='<div class="stat"><div class="val" style="color:var(--green)">'+d.final_loss.toFixed(4)+'</div><div class="lbl">Final Loss</div></div>';
+  h+='<div class="stat"><div class="val">'+d.improvement_pct+'%</div><div class="lbl">Improvement</div></div>';
+  h+='<div class="stat"><div class="val">'+d.n_patients+'</div><div class="lbl">Patients</div></div>';
+  h+='<div class="stat"><div class="val">'+d.n_connections_pruned+'</div><div class="lbl">Active Connections</div></div>';
+  h+='<div class="stat"><div class="val" style="color:var(--amber)">'+(d.n_active_tipping||0)+'</div><div class="lbl">Tipping Points</div></div>';
+  h+='<div class="stat"><div class="val">'+d.elapsed_s+'s</div><div class="lbl">Time</div></div>';
+  h+='<div class="stat"><div class="val">'+(d.n_params||'?')+'</div><div class="lbl">Parameters</div></div>';
+  $('statGrid').innerHTML = h;
+
+  // Variable errors
+  var ve = '<div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:1px;margin-bottom:6px">PREDICTION ACCURACY (REAL UNITS)</div><div style="display:flex;gap:16px">';
+  for(var k in d.var_errors){
+    var e=d.var_errors[k];
+    ve+='<div class="stat"><div class="val" style="font-size:16px;color:var(--amber)">'+e.rmse+'</div><div class="lbl">'+k+' RMSE ('+e.unit+')</div></div>';
+  }
+  ve+='</div>';
+  $('varErrors').innerHTML = ve;
+  show('varErrors');
+}
+
+function drawLossChart(history){
+  var cv=$('lossCanvas'),ctx=cv.getContext('2d');
+  var W=cv.parentElement.clientWidth||600;
+  var H=120;
+  var dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr; cv.height=H*dpr;
+  cv.style.width=W+'px'; cv.style.height=H+'px';
+  ctx.scale(dpr,dpr);
+  var pad={l:45,r:10,t:8,b:18};
+  ctx.fillStyle='#060610'; ctx.fillRect(0,0,W,H);
+
+  var vals=history, n=vals.length;
+  if(n<2) return;
+  var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),rng=mx-mn||0.001;
+  var pW=W-pad.l-pad.r,pH=H-pad.t-pad.b;
+
+  // Grid
+  ctx.strokeStyle='#ffffff08'; ctx.lineWidth=1;
+  for(var g=0;g<4;g++){var gy=pad.t+pH*g/3; ctx.beginPath();ctx.moveTo(pad.l,gy);ctx.lineTo(W-pad.r,gy);ctx.stroke();}
+
+  // Curve
+  ctx.beginPath();
+  for(var i=0;i<n;i++){
+    var x=pad.l+(i/(n-1))*pW, y=pad.t+pH-(vals[i]-mn)/rng*pH;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.strokeStyle='#9b6dff'; ctx.lineWidth=2; ctx.stroke();
+
+  // Fill under
+  ctx.lineTo(pad.l+(n-1)/(n-1)*pW, pad.t+pH);
+  ctx.lineTo(pad.l, pad.t+pH);
+  ctx.closePath();
+  ctx.fillStyle='#9b6dff10'; ctx.fill();
+
+  // Labels
+  ctx.fillStyle='#6e6e90'; ctx.font='9px IBM Plex Mono';
+  ctx.textAlign='right'; ctx.fillText(mx.toFixed(4),pad.l-4,pad.t+8);
+  ctx.fillText(mn.toFixed(4),pad.l-4,H-pad.b);
+  ctx.textAlign='center'; ctx.fillText('Loss',W/2,H-2);
+}
+
+// --- Network Visualization ---
+var netPositions = {};
+var netHover = -1;
+
+function renderNetwork(d){
+  $('connCount').textContent = d.n_connections_pruned+' / '+d.n_connections_total+' connections survived';
+
+  // Connection table
+  var tb='';
+  var conns = d.connections || [];
+  var maxW = conns.length ? conns[0].abs_weight : 1;
+  for(var i=0;i<Math.min(conns.length,25);i++){
+    var c=conns[i];
+    var col = c.type==='fill'?'var(--green)':'var(--magenta)';
+    var barW = Math.round(c.abs_weight/maxW*80);
+    tb+='<tr><td style="color:'+getColor(c.from)+'">'+c.from+'</td>';
+    tb+='<td style="color:'+getColor(c.to)+'">'+c.to+'</td>';
+    tb+='<td style="color:'+col+'">'+c.type+'</td>';
+    tb+='<td>'+c.weight.toFixed(3)+' <span class="w-bar" style="width:'+barW+'px;background:'+col+'"></span></td></tr>';
+  }
+  $('connBody').innerHTML = tb;
+
+  // Store for redraw
+  window._netConns = conns;
+  window._netHidden = d.hidden_analysis;
+  window._showAllConns = false;
+
+  drawNetwork(conns, d.hidden_analysis);
+}
+
+function toggleFullNetwork(){
+  window._showAllConns = !window._showAllConns;
+  var btn = $('toggleNetBtn');
+  btn.textContent = window._showAllConns ? 'Show pruned only' : 'Show all connections';
+  btn.style.color = window._showAllConns ? 'var(--amber)' : 'var(--cyan)';
+  drawNetwork(window._netConns, window._netHidden);
+}
+
+function getColor(name){
+  var all = Object.assign({}, {{ inputs | tojson }}, {{ targets | tojson }});
+  return (all[name]||{}).color || '#888';
+}
+
+function drawNetwork(connections, hidden){
+  var cv=$('netCanvas'), ctx=cv.getContext('2d');
+  // Force canvas pixel size
+  var W = cv.parentElement.clientWidth || 600;
+  var H = 420;
+  var dpr = window.devicePixelRatio||1;
+  cv.width = W*dpr; cv.height = H*dpr;
+  cv.style.width = W+'px'; cv.style.height = H+'px';
+  ctx.scale(dpr,dpr);
+
+  ctx.fillStyle='#060610'; ctx.fillRect(0,0,W,H);
+
+  // Layout reservoirs in layers
+  var inputs = {{ input_names | tojson }};
+  var targets = {{ target_names | tojson }};
+  var tDefs = {{ targets | tojson }};
+
+  var layers = {input:[],phys:[],lab:[],hidden:[]};
+  inputs.forEach(function(k){ layers.input.push(k); });
+  targets.forEach(function(k){
+    var g = (tDefs[k]||{}).group || 'phys';
+    layers[g].push(k);
+  });
+
+  var yMap = {input:60, phys:170, lab:280, hidden:380};
+  var pos = {};
+  ['input','phys','lab','hidden'].forEach(function(layer){
+    var arr=layers[layer], n=arr.length;
+    for(var i=0;i<n;i++){
+      pos[arr[i]] = {x: 60 + (i/(Math.max(n-1,1)))*(W-120), y: yMap[layer]};
+    }
+  });
+  netPositions = pos;
+
+  // Layer labels
+  ctx.fillStyle='#ffffff15'; ctx.font='bold 9px IBM Plex Mono';
+  ctx.textAlign='left';
+  ctx.fillText('INPUT LAYER',12,yMap.input-20);
+  ctx.fillText('PHYSIOLOGIC LAYER',12,yMap.phys-20);
+  ctx.fillText('LAB LAYER',12,yMap.lab-20);
+  ctx.fillText('HIDDEN LAYER',12,yMap.hidden-20);
+
+  // Draw connections
+  // If showing all: draw ghost connections for every possible pair first
+  if(window._showAllConns){
+    var allSrc = inputs.concat(targets);
+    allSrc.forEach(function(s){
+      targets.forEach(function(t){
+        if(s===t) return;
+        var fp=pos[s], tp=pos[t];
+        if(!fp||!tp) return;
+        ctx.beginPath(); ctx.moveTo(fp.x,fp.y); ctx.lineTo(tp.x,tp.y);
+        ctx.strokeStyle='#ffffff06'; ctx.lineWidth=0.5;
+        ctx.stroke();
+      });
+    });
+  }
+  connections.forEach(function(c,ci){
+    var fp=pos[c.from], tp=pos[c.to];
+    if(!fp||!tp) return;
+    var isFill = c.type==='fill';
+    var alpha = Math.min(1, c.abs_weight/1.5);
+    ctx.beginPath(); ctx.moveTo(fp.x,fp.y); ctx.lineTo(tp.x,tp.y);
+    ctx.strokeStyle = isFill ? 'rgba(0,232,123,'+alpha*0.5+')' : 'rgba(255,45,120,'+alpha*0.5+')';
+    ctx.lineWidth = 0.5 + c.abs_weight * 1.2;
+    if(!isFill){ ctx.setLineDash([4,3]); } else { ctx.setLineDash([]); }
+    ctx.stroke(); ctx.setLineDash([]);
+  });
+
+  // Draw nodes
+  ctx.textAlign='center';
+  var allKeys = inputs.concat(targets);
+  var allDefs = Object.assign({}, {{ inputs | tojson }}, {{ targets | tojson }});
+  allKeys.forEach(function(k){
+    var p=pos[k]; if(!p) return;
+    var d=allDefs[k]||{};
+    var isHidden = (d.group==='hidden');
+    var r = isHidden ? 22 : 20;
+
+    // Glow
+    var grd=ctx.createRadialGradient(p.x,p.y,r-4,p.x,p.y,r+12);
+    grd.addColorStop(0,(d.color||'#888')+'33'); grd.addColorStop(1,'transparent');
+    ctx.beginPath(); ctx.arc(p.x,p.y,r+12,0,Math.PI*2); ctx.fillStyle=grd; ctx.fill();
+
+    // Circle
+    ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2);
+    ctx.fillStyle = isHidden ? '#0d0d22' : '#080818';
+    ctx.fill();
+    ctx.strokeStyle = d.color||'#888'; ctx.lineWidth = isHidden ? 2.5 : 1.5;
+    if(isHidden){ ctx.setLineDash([3,3]); } ctx.stroke(); ctx.setLineDash([]);
+
+    // Label
+    ctx.fillStyle = d.color||'#888'; ctx.font = 'bold 9px IBM Plex Mono';
+    ctx.fillText(d.label||k, p.x, p.y+3);
+
+    // Hidden: show suggested name
+    if(isHidden && hidden){
+      for(var hi=0;hi<hidden.length;hi++){
+        if(hidden[hi].reservoir===k){
+          ctx.fillStyle='#ffffff55'; ctx.font='bold 8px IBM Plex Mono';
+          ctx.fillText(hidden[hi].suggested_name, p.x, p.y+14);
+        }
+      }
+    }
+  });
+
+  window._netPos = pos;
+}
+
+// Network hover tooltip
+(function(){
+  function initNetHover(){
+    var cv = $('netCanvas'), tip = $('netTip');
+    if(!cv || !tip) return;
+    cv.addEventListener('mousemove', function(e){
+      var rect = cv.getBoundingClientRect();
+      var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      var conns = window._netConns || [], pos = window._netPos || {}, found = null;
+      for(var ci=0;ci<conns.length;ci++){
+        var c=conns[ci], fp=pos[c.from], tp=pos[c.to];
+        if(!fp||!tp) continue;
+        var dx=tp.x-fp.x, dy=tp.y-fp.y, l2=dx*dx+dy*dy;
+        if(!l2) continue;
+        var t=Math.max(0,Math.min(1,((mx-fp.x)*dx+(my-fp.y)*dy)/l2));
+        var px=fp.x+t*dx, py=fp.y+t*dy;
+        if(Math.sqrt((mx-px)*(mx-px)+(my-py)*(my-py))<10){ found=c; break; }
+      }
+      if(found){
+        var isFill=found.type==='fill', col=isFill?'#00e87b':'#ff2d78';
+        tip.style.display='block'; tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY-10)+'px';
+        tip.innerHTML='<div style="font-weight:700;color:'+col+';font-size:11px;margin-bottom:2px">'+found.from+' \u2192 '+found.to+'</div>'
+          +'<div style="font-size:10px;color:#b8b8d0">'+found.type+' | weight: '+found.weight.toFixed(3)+'</div>'
+          +'<div style="font-size:9px;color:#6e6e90;margin-top:2px">Shifts '+found.to+' eq '+(isFill?'UP':'DOWN')+'</div>';
+      } else { tip.style.display='none'; }
+    });
+    cv.addEventListener('mouseleave', function(){ tip.style.display='none'; });
+  }
+  setTimeout(initNetHover, 1500);
+})();
+
+function renderHidden(analysis){
+  var h='';
+  analysis.forEach(function(ha){
+    var col = getColor(ha.reservoir);
+    h+='<div class="hidden-card" style="border-left:3px solid '+col+';margin-bottom:12px">';
+    h+='<div class="h-name" style="color:'+col+'">'+ha.suggested_name+'</div>';
+    h+='<div class="h-sub">'+ha.reservoir+' &middot; eq='+ha.eq.toFixed(2)+' &middot; spring='+ha.spring_rate.toFixed(3)+'</div>';
+    h+='<div style="font-size:9px;color:var(--text2);font-weight:700;margin-bottom:3px">TOP INCOMING:</div>';
+    ha.top_incoming.forEach(function(ic){
+      var col2=ic.weight>0?'var(--green)':'var(--magenta)';
+      h+='<div class="h-conn"><span style="color:'+getColor(ic.source)+'">'+ic.source+'</span> <span style="color:'+col2+'">'+(ic.weight>0?'fill':'leak')+' '+ic.weight.toFixed(3)+'</span></div>';
+    });
+    h+='<div style="font-size:9px;color:var(--text2);font-weight:700;margin:6px 0 3px">TOP OUTGOING:</div>';
+    ha.top_outgoing.forEach(function(oc){
+      var col2=oc.weight>0?'var(--green)':'var(--magenta)';
+      h+='<div class="h-conn"><span style="color:'+col2+'">'+(oc.weight>0?'fill':'leak')+' '+oc.weight.toFixed(3)+'</span> &rarr; <span style="color:'+getColor(oc.target)+'">'+oc.target+'</span></div>';
+    });
+    h+='</div>';
+  });
+  $('hiddenCards').innerHTML = h;
+}
+
+function renderTipping(tips){
+  $('tipCount').textContent = tips.length + ' active tipping point' + (tips.length!==1?'s':'') + ' discovered';
+  var grid = $('tippingGrid');
+  if(!tips.length){
+    grid.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">No strong tipping points discovered in this dataset.<br>With real clinical data containing autoregulatory thresholds, expect more.</div>';
+    return;
+  }
+
+  var h = '';
+  tips.forEach(function(tip){
+    var dirIcon = tip.direction==='below' ? '&#x2B07;' : '&#x2B06;';
+    var effectIcon = tip.effect==='accelerate_down' ? '&#x1F4A5;' : tip.effect==='accelerate_up' ? '&#x1F525;' : tip.effect==='accelerate_down' ? '&#x2744;' : '&#x1F6E1;';
+    var borderCol = tip.effect.indexOf('down')>=0 ? 'var(--magenta)' : tip.effect.indexOf('up')>=0 ? 'var(--amber)' : 'var(--cyan)';
+    var strengthCol = tip.strength==='strong' ? 'var(--magenta)' : tip.strength==='moderate' ? 'var(--amber)' : 'var(--text2)';
+
+    h += '<div style="background:var(--bg3);border:1px solid '+borderCol+'33;border-left:3px solid '+borderCol+';border-radius:8px;padding:14px">';
+
+    // Header
+    h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+    h += '<span style="font-size:16px">'+effectIcon+'</span>';
+    h += '<div>';
+    h += '<div style="font-family:Sora,sans-serif;font-weight:700;font-size:14px;color:'+borderCol+'">'+tip.label+'</div>';
+    h += '<div style="font-size:10px;color:var(--text2)">Channel '+tip.channel+'</div>';
+    h += '</div>';
+    h += '<div style="margin-left:auto;text-align:right">';
+    h += '<div style="font-family:Sora,sans-serif;font-weight:800;font-size:22px;color:var(--bright)">'+tip.threshold_real+'</div>';
+    h += '<div style="font-size:9px;color:var(--text2)">'+tip.unit+'</div>';
+    h += '</div></div>';
+
+    // Sigmoid visualization (inline SVG)
+    var svgW=280, svgH=50, pad=10;
+    var th = tip.threshold_norm;
+    var st = tip.steepness;
+    var mg = tip.magnitude;
+    h += '<svg width="'+svgW+'" height="'+svgH+'" style="display:block;margin:6px 0">';
+    // Background
+    h += '<rect x="0" y="0" width="'+svgW+'" height="'+svgH+'" rx="4" fill="#060610"/>';
+    // Threshold line
+    var thX = pad + th * (svgW - 2*pad);
+    h += '<line x1="'+thX+'" y1="2" x2="'+thX+'" y2="'+(svgH-2)+'" stroke="'+borderCol+'" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>';
+    // Sigmoid curve
+    h += '<path d="';
+    for(var xi=0;xi<svgW-2*pad;xi++){
+      var xn = xi/(svgW-2*pad); // 0-1
+      var sigIn = st * (xn - th);
+      var sigV = 1.0/(1.0+Math.exp(-Math.max(-15,Math.min(15,sigIn))));
+      var force = mg * sigV;
+      // Map force to y: 0 = middle, positive up, negative down
+      var y = svgH/2 - force * svgH * 1.5;
+      y = Math.max(3, Math.min(svgH-3, y));
+      h += (xi===0?'M':'L') + (pad+xi) + ',' + y.toFixed(1);
+    }
+    h += '" fill="none" stroke="'+borderCol+'" stroke-width="2"/>';
+    // Zero line
+    h += '<line x1="'+pad+'" y1="'+(svgH/2)+'" x2="'+(svgW-pad)+'" y2="'+(svgH/2)+'" stroke="#ffffff10" stroke-width="1"/>';
+    // Labels
+    h += '<text x="'+(pad+2)+'" y="'+(svgH-4)+'" fill="#6a6a88" font-size="8" font-family="DM Mono,monospace">0</text>';
+    h += '<text x="'+(svgW-pad-8)+'" y="'+(svgH-4)+'" fill="#6a6a88" font-size="8" font-family="DM Mono,monospace">1</text>';
+    h += '</svg>';
+
+    // Properties
+    h += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px">';
+    h += '<div style="font-size:10px"><span style="color:var(--text2)">Direction:</span> <span style="color:var(--bright)">'+tip.direction+'</span></div>';
+    h += '<div style="font-size:10px"><span style="color:var(--text2)">Sharpness:</span> <span style="color:var(--bright)">'+tip.sharpness+' ('+tip.steepness.toFixed(1)+')</span></div>';
+    h += '<div style="font-size:10px"><span style="color:var(--text2)">Magnitude:</span> <span style="color:'+strengthCol+'">'+tip.strength+' ('+tip.magnitude.toFixed(4)+')</span></div>';
+    h += '</div>';
+
+    // Interpretation
+    h += '<div style="margin-top:8px;font-size:11px;color:var(--text);font-style:italic;line-height:1.5">'+tip.interpretation+'</div>';
+    h += '</div>';
+  });
+
+  grid.innerHTML = h;
+}
+
+// --- Oracle ---
+function loadExamples(){
+  fetch('/api/examples').then(r=>r.json()).then(examples=>{
+    var h='';
+    examples.forEach(function(q){
+      h+='<span class="chip" onclick="useExample(this)">'+q.substring(0,60)+'...</span>';
+    });
+    $('exampleChips').innerHTML = h;
+  });
+}
+
+function useExample(el){
+  // Fetch full text from the chip's full content
+  fetch('/api/examples').then(r=>r.json()).then(examples=>{
+    var partial = el.textContent.replace('...','');
+    for(var i=0;i<examples.length;i++){
+      if(examples[i].substring(0,60)===partial){
+        $('questionInput').value = examples[i];
+        return;
+      }
+    }
+    $('questionInput').value = el.textContent;
+  });
+}
+
+// --- Oracle: Two-step flow ---
+var parsedProfile = null;
+var parsedShockType = null;
+var PROFILE_FIELDS = [
+  {key:'map',       label:'MAP',          unit:'mmHg'},
+  {key:'hr',        label:'HR',           unit:'bpm'},
+  {key:'lactate',   label:'Lactate',      unit:'mmol/L'},
+  {key:'creatinine',label:'Creatinine',   unit:'mg/dL'},
+  {key:'wbc',       label:'WBC',          unit:'K/uL'},
+  {key:'procal',    label:'Procalcitonin',unit:'ng/mL'},
+  {key:'age',       label:'Age',          unit:'years'},
+];
+
+function parseQuestion(){
+  var q = $('questionInput').value.trim();
+  if(!q) return;
+  $('askBtn').disabled = true;
+  $('askBtn').textContent = 'Parsing...';
+  hide('confirmPanel');
+  hide('oracleResults');
+
+  fetch('/api/parse',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({question:q})
+  }).then(r=>r.json()).then(d=>{
+    $('askBtn').disabled = false;
+    $('askBtn').textContent = 'Parse';
+    if(d.error){ alert(d.error); return; }
+
+    parsedProfile = d.profile;
+    parsedShockType = d.shock_type || 'unknown';
+    var extracted = d.extracted || [];
+    var inferred = d.inferred || [];
+
+    // LLM badge
+    if(d.used_llm){
+      $('llmTag').className = 'tag tag-done';
+      $('llmTag').textContent = d.model || 'OLLAMA';
+    } else {
+      $('llmTag').className = 'tag tag-idle';
+      $('llmTag').textContent = 'FALLBACK';
+    }
+
+    $('parseSource').textContent = d.used_llm
+      ? 'Parsed by ' + (d.model||'Ollama') + ' — review and edit before running'
+      : 'Parsed by keyword matching (Ollama offline) — review and edit';
+
+    // Shock type
+    var stExtracted = extracted.indexOf('shock_type') >= 0;
+    $('shockTypeParsed').innerHTML = 'Shock type: <span style="color:'+(stExtracted?'var(--cyan)':'var(--amber)')+';font-size:13px;font-weight:800">'+parsedShockType.toUpperCase()+'</span>'
+      + ' <span style="font-size:8px;color:var(--text2)">('+(stExtracted?'extracted':'inferred')+')</span>';
+
+    // Profile grid with editable inputs
+    var grid = '';
+    PROFILE_FIELDS.forEach(function(f){
+      var val = parsedProfile[f.key];
+      var isExtracted = extracted.indexOf(f.key) >= 0;
+      var borderColor = isExtracted ? 'var(--cyan)' : 'var(--amber)';
+      var bgColor = isExtracted ? '#00d4ff08' : '#ffb02008';
+      var tag = isExtracted ? 'EXTRACTED' : 'INFERRED';
+      var tagColor = isExtracted ? 'var(--cyan)' : 'var(--amber)';
+
+      grid += '<div style="background:'+bgColor+';border:1px solid '+borderColor+'33;border-radius:8px;padding:10px;width:130px;text-align:center">';
+      grid += '<div style="font-size:8px;color:var(--text2);text-transform:uppercase;letter-spacing:1px">'+f.label+'</div>';
+      grid += '<input type="number" step="any" value="'+val+'" id="pf_'+f.key+'" style="width:80px;background:var(--bg);border:1px solid '+borderColor+'44;border-radius:4px;color:var(--bright);font-family:Outfit,sans-serif;font-size:18px;font-weight:700;text-align:center;padding:4px;outline:none;margin:4px 0">';
+      grid += '<div style="font-size:8px;color:var(--text2)">'+f.unit+'</div>';
+      grid += '<div style="font-size:7px;font-weight:700;color:'+tagColor+';margin-top:3px;letter-spacing:1px">'+tag+'</div>';
+      grid += '</div>';
+    });
+    $('profileGrid').innerHTML = grid;
+
+    // Reasoning
+    $('parseReasoning').textContent = d.reasoning || '';
+
+    show('confirmPanel');
+    $('confirmPanel').classList.add('fade-in');
+  }).catch(e=>{ alert(e); $('askBtn').disabled=false; $('askBtn').textContent='Parse'; });
+}
+
+function runConfirmed(){
+  // Read (possibly edited) values from inputs
+  var profile = {};
+  PROFILE_FIELDS.forEach(function(f){
+    var el = $('pf_'+f.key);
+    profile[f.key] = el ? parseFloat(el.value) || 0 : 0;
+  });
+
+  $('confirmBtn').disabled = true;
+  $('confirmBtn').textContent = 'Running...';
+
+  fetch('/api/experiment',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      question: $('questionInput').value,
+      profile: profile,
+      shock_type: parsedShockType
+    })
+  }).then(r=>r.json()).then(d=>{
+    $('confirmBtn').disabled = false;
+    $('confirmBtn').textContent = 'Run Experiment';
+    if(d.error){ alert(d.error); return; }
+    renderExperiment(d);
+    show('oracleResults');
+    $('oracleResults').classList.add('fade-in');
+    // Draw trajectories after layout
+    requestAnimationFrame(function(){
+      drawTrajectory('trajMap', d.scenarios, 'map', 'MAP', [65], ['mmHg']);
+      drawTrajectory('trajLac', d.scenarios, 'lactate', 'Lactate', [2], ['mmol/L']);
+      drawTrajectory('trajHr', d.scenarios, 'hr', 'HR', [60,100], ['bpm']);
+    });
+  }).catch(e=>{ alert(e); $('confirmBtn').disabled=false; $('confirmBtn').textContent='Run Experiment'; });
+}
+
+function askOracle(){ parseQuestion(); }
+
+function renderExperiment(d){
+  $('shockTypeLabel').textContent = d.shock_type.toUpperCase()+' SHOCK';
+  var pp = d.patient_profile;
+  $('profileLabel').textContent = 'MAP '+pp.map+' | HR '+pp.hr+' | Lac '+pp.lactate+' | Cr '+pp.creatinine+' | Age '+pp.age;
+
+  // Scenario cards
+  var g='';
+  d.scenarios.forEach(function(sc){
+    var best = sc.is_best;
+    var rankCls = 'rank-'+Math.min(sc.rank,4);
+    g+='<div class="scenario-card'+(best?' best':'')+'" style="border-left:3px solid '+sc.color+'">';
+    g+='<div class="sc-rank '+rankCls+'">#'+sc.rank+'</div>';
+    g+='<div class="sc-name" style="color:'+sc.color+'">'+sc.name+'</div>';
+    g+='<div class="sc-desc">'+sc.description+'</div>';
+    g+='<div class="sc-score" style="color:'+sc.color+'">'+sc.score+'</div>';
+    g+='<div class="sc-score-lbl">Composite Score</div>';
+    var kp=sc.key_predictions;
+    g+='<div class="pred-row">';
+    g+='<div class="pred-item"><div class="pred-val" style="color:'+(kp.map_24h>=65?'var(--green)':'var(--red)')+'">'+kp.map_24h+'</div><div class="pred-lbl">MAP 24h</div></div>';
+    g+='<div class="pred-item"><div class="pred-val" style="color:'+(kp.lactate_24h<pp.lactate?'var(--green)':'var(--red)')+'">'+kp.lactate_24h+'</div><div class="pred-lbl">Lac 24h</div></div>';
+    g+='<div class="pred-item"><div class="pred-val">'+kp.hr_24h+'</div><div class="pred-lbl">HR 24h</div></div>';
+    g+='<div class="pred-item"><div class="pred-val">'+kp.creatinine_24h+'</div><div class="pred-lbl">Cr 24h</div></div>';
+    g+='</div></div>';
+  });
+  $('scenarioGrid').innerHTML = g;
+
+  // Trajectory charts are drawn by caller after requestAnimationFrame
+
+  // Recommendation
+  if(d.recommendation){
+    $('recText').textContent = d.recommendation;
+    show('recBox');
+  }
+}
+
+function drawTrajectory(canvasId, scenarios, key, label, thresholds, units){
+  var cv=$(canvasId), ctx=cv.getContext('2d');
+  var W = cv.parentElement.clientWidth || 300;
+  var H = 180;
+  var dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr; cv.height=H*dpr;
+  cv.style.width=W+'px'; cv.style.height=H+'px';
+  ctx.scale(dpr,dpr);
+  var pad={l:38,r:10,t:10,b:20};
+  ctx.fillStyle='#060610'; ctx.fillRect(0,0,W,H);
+
+  var pW=W-pad.l-pad.r, pH=H-pad.t-pad.b;
+
+  // Find global min/max
+  var allVals=[];
+  scenarios.forEach(function(sc){ sc.trajectory[key].forEach(function(v){allVals.push(v);}); });
+  thresholds.forEach(function(t){allVals.push(t);});
+  var mn=Math.min.apply(null,allVals), mx=Math.max.apply(null,allVals);
+  var rng=mx-mn; if(rng<1)rng=1; mn-=rng*0.05; mx+=rng*0.05; rng=mx-mn;
+
+  // Threshold lines
+  thresholds.forEach(function(t){
+    var y=pad.t+pH-(t-mn)/rng*pH;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y);
+    ctx.strokeStyle='#ffffff15'; ctx.lineWidth=1; ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#ffffff25'; ctx.font='8px IBM Plex Mono'; ctx.textAlign='left';
+    ctx.fillText(t+'',pad.l+2,y-3);
+  });
+
+  // Draw each scenario
+  scenarios.forEach(function(sc){
+    var vals = sc.trajectory[key];
+    var hours = sc.trajectory.hours;
+    var n = vals.length;
+    ctx.beginPath();
+    for(var i=0;i<n;i++){
+      var x=pad.l+(hours[i]/24)*pW;
+      var y=pad.t+pH-(vals[i]-mn)/rng*pH;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle=sc.color; ctx.lineWidth=sc.is_best?2.5:1.2; ctx.globalAlpha=sc.is_best?1:0.5; ctx.stroke();
+    ctx.globalAlpha=1;
+
+    // Label at end
+    var lastY=pad.t+pH-(vals[n-1]-mn)/rng*pH;
+    ctx.fillStyle=sc.color; ctx.font='bold 8px IBM Plex Mono'; ctx.textAlign='right';
+    ctx.fillText(sc.name.split(' ')[0], W-pad.r-2, lastY-4);
+  });
+
+  // Axes
+  ctx.fillStyle='#6e6e90'; ctx.font='8px IBM Plex Mono'; ctx.textAlign='right';
+  ctx.fillText(Math.round(mx)+'',pad.l-4,pad.t+8);
+  ctx.fillText(Math.round(mn)+'',pad.l-4,H-pad.b);
+  ctx.textAlign='center'; ctx.fillText('0h',pad.l,H-4);
+  ctx.fillText('24h',W-pad.r,H-4);
+}
+
+// Enter key
+$('questionInput').addEventListener('keydown',function(e){ if(e.key==='Enter') parseQuestion(); });
+</script>
+
+</body>
+</html>
